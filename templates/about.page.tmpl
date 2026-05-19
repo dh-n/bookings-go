@@ -1,0 +1,18 @@
+{{template "base" .}} {{define "content"}}
+<section class="section">
+  <div class="container">
+    <h1 class="title">About Page</h1>
+    <h2 class="subtitle">
+      <p>A simple about page</p>
+    </h2>
+    <p>{{index .StringMap "data"}}</p>
+    {{if ne (index .StringMap "remoteIp") ""}}
+    <p>The ip addr is {{index .StringMap "remoteIp"}}</p>
+    <a href="/">Home</a>
+    {{else}}
+    <p>The ip addr is not set yet: Please visit</p>
+    <a href="/">Home</a>
+    {{end}}
+  </div>
+</section>
+{{end}}
