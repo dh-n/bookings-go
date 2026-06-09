@@ -1,0 +1,67 @@
+// Package forms
+package forms
+
+import (
+	"fmt"
+	"net/http"
+	"net/url"
+	"strings"
+
+	"github.com/asaskevich/govalidator"
+)
+
+type Form struct {
+	url.Values
+	Errors errors
+}
+
+// Valid returns true if there are no errros else returns false
+func (f *Form) Valid() bool {
+	return len(f.Errors) == 0
+}
+
+// Required validates whether the filed in the form is required
+func (f *Form) Required(fields ...string) {
+	for _, field := range fields {
+		value := f.Get(field)
+		if strings.TrimSpace(value) == "" {
+			f.Errors.Add(field, "This field cannot be blank")
+		}
+	}
+}
+
+// New creates a new form with the provided data
+func New(data url.Values) *Form {
+	return &Form{
+		data,
+		errors{},
+	}
+}
+
+// MinLength checks for min length of the given field
+func (f *Form) MinLength(field string, length int, r *http.Request) bool {
+	x := r.Form.Get(field)
+	if len(x) < length {
+		f.Errors.Add(field, fmt.Sprintf("The min length of %s should be %d chars long", field, length))
+		return false
+	}
+	return true
+}
+
+// IsEmail checks if the email sent via form is a valid email
+func (f *Form) IsEmail(field string) {
+	email := f.Get(field)
+	if !govalidator.IsEmail(email) {
+		f.Errors.Add(field, "Not a valid email")
+	}
+}
+
+// Has checks whether the request contains a form field
+func (f *Form) Has(field string, r *http.Request) bool {
+	x := r.Form.Get(field)
+	if x == "" {
+		f.Errors.Add(field, "This field cannot be blank")
+		return false
+	}
+	return true
+}
