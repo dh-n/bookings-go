@@ -1,0 +1,49 @@
+services:
+  # --- THE DATABASE ENGINE ---
+  postgres_db:
+    image: postgres:16-alpine
+    container_name: bookings-postgres
+    # 'always' ensures the DB boots up automatically when your laptop starts up
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_secret
+      POSTGRES_DB: bookings
+    ports:
+      - "5432:5432"
+    volumes:
+      - bookings_postgres_data:/var/lib/postgresql/data
+    # Production Grade: Prevents Docker logs from eating up all your disk space
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Production Grade: Tells the system exactly how to check if the DB is actually awake
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d bookings"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # --- THE GO WEB APPLICATION ---
+  go_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bookings-go-app
+    # 'on-failure' is best for apps; if code breaks, it restarts, but stops if you manually shut it down
+    restart: on-failure
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=postgres://postgres:mysecretpassword@postgres_db:5432/bookings?sslmode=disable
+    volumes:
+      - .:/app
+    # Production Grade: The Go app will wait until the database passes its health check above
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+
+volumes:
+  bookings_postgres_data:
